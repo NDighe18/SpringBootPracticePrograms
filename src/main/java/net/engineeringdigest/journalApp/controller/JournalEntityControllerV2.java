@@ -1,0 +1,67 @@
+package net.engineeringdigest.journalApp.controller;
+
+import net.engineeringdigest.journalApp.entity.JournalEntry;
+import net.engineeringdigest.journalApp.service.JournalEntryService;
+import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.time.LocalDateTime;
+import java.util.*;
+
+
+@RestController
+@RequestMapping("/journal")
+public class JournalEntityControllerV2 {
+
+    @Autowired
+    private JournalEntryService journalEntryService;   //creating instance - injecting
+
+    @GetMapping
+    public List<JournalEntry> getAll(){
+        return journalEntryService.getAll();
+    }
+
+    @PostMapping
+    public ResponseEntity<JournalEntry> createEntry(@RequestBody JournalEntry myEntry){
+        try{
+            myEntry.setDate(LocalDateTime.now());
+            journalEntryService.saveEntry(myEntry);
+            return new ResponseEntity<>(myEntry, HttpStatus.OK);
+        }
+        catch (Exception e){
+            return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    @GetMapping("id/{myId}")
+    public ResponseEntity<JournalEntry> getJournalEntryById(@PathVariable ObjectId myId){
+        Optional<JournalEntry> journalEntry = journalEntryService.findById(myId);
+        if(journalEntry.isPresent()){
+            return new ResponseEntity<>(journalEntry.get(), HttpStatus.OK);
+        }
+        return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    @PutMapping("id/{myId}")
+    public JournalEntry updateJourneyById(@PathVariable ObjectId myId, @RequestBody JournalEntry updatedEntry){
+        JournalEntry oldEntry =  journalEntryService.findById(myId).orElse(null);
+
+        if(oldEntry!=null){
+            oldEntry.setTitle(updatedEntry.getTitle()!=null && !updatedEntry.getTitle().isEmpty() ? updatedEntry.getTitle():oldEntry.getTitle());
+            oldEntry.setContent(updatedEntry.getContent()!=null && !updatedEntry.getContent().isEmpty() ? updatedEntry.getContent(): oldEntry.getContent());
+        }
+        // if content change kr rhe to only wo update ho, and title same rhe and vice versa.Only jo update ho rha part wo change hoga ,baki same rhega old.
+        journalEntryService.saveEntry(oldEntry);
+        return oldEntry;
+    }
+
+    @DeleteMapping("id/{id}")
+    public boolean deleteJournalEntryById(@PathVariable ObjectId id){
+        journalEntryService.deleteById(id);
+        return true;
+    }
+
+}
